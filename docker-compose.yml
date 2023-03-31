@@ -1,0 +1,32 @@
+version: "2.4"
+services:
+  hoppscotch:
+    container_name: hoppscotch
+    image: hoppscotch/hoppscotch:latest
+    volumes:
+      - "hoppscotch-app:/app/.hoppscotch"
+      - "./app/.env:/app/.env"
+    labels:
+      - "traefik.http.routers.hoppscotch.rule=Host(`hoppscotch.localhost`)"
+      - "traefik.http.services.hoppscotch.loadbalancer.server.port=3000"
+  proxyscotch:
+    container_name: proxyscotch
+    image: hoppscotch/proxyscotch:latest
+    command: ["sh", "-c", "/etc/proxyscotch/out/linux-server/proxyscotch-server-* --host 0.0.0.0:9159 --token=123"]
+    labels:
+      - "traefik.http.routers.proxyscotch.rule=Host(`proxyscotch.localhost`)"
+      - "traefik.http.services.proxyscotch.loadbalancer.server.port=9159"
+  reverse-proxy:
+    container_name: reverse-proxy
+    image: traefik:v2.9
+    command: 
+      - --providers.docker
+      - --entrypoints.hoppscotch.address=:80
+      - --entrypoints.proxyscotch.address=:9159
+    ports:
+      - "80:80"
+      - "9159:9159"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+volumes:
+  hoppscotch-app:
